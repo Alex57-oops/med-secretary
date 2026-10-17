@@ -1,0 +1,404 @@
+{% extends "doctor_layout.html" %}
+
+{% block title %}Приём — {{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<a href="/patient/{{ patient.id }}" class="back-link">← Назад в карточку пациента</a>
+
+<div class="appointment-header">
+    <div>
+        <h1 class="page-title">Приём: {{ patient.full_name }}</h1>
+        <p class="page-subtitle">Карта № {{ patient.card or '—' }} • {{ patient.age or '—' }} лет</p>
+    </div>
+    <div class="appointment-status" id="status-badge">
+        <span class="status-dot"></span>
+        <span id="status-text">Готов к началу</span>
+    </div>
+</div>
+
+<div class="appointment-grid">
+
+    <div class="appointment-main">
+        <div class="transcript-panel">
+            <div class="transcript-header">
+                <span>🗣 Стенограмма приёма</span>
+                <span class="transcript-hint" id="live-hint">Текст появляется по мере разговора</span>
+            </div>
+            <div style="padding: 20px;">
+                <div class="recording-controls">
+                    <button id="btn-rec-start" class="btn-record-start" onclick="startRecording()">
+                        🎙 Начать приём
+                    </button>
+                    <button id="btn-rec-stop" class="btn-record-stop" onclick="stopRecording()" style="display:none;">
+                        ⏹ Завершить приём
+                    </button>
+                    <div class="record-timer" id="rec-timer" style="display:none;">00:00</div>
+                    <div class="rec-status" id="rec-status"></div>
+                </div>
+
+                <textarea
+                    id="transcript-input"
+                    class="transcript-textarea"
+                    placeholder="Здесь появится текст приёма по мере разговора. Можно также вставить текст вручную и нажать «Обработать через ИИ»."
+                ></textarea>
+
+                <div class="transcript-actions">
+                    <button id="btn-process" class="btn-record-start" onclick="processTranscript()">
+                        ⚡ Обработать через ИИ
+                    </button>
+                    <button class="btn-delete-appointment" onclick="clearTranscript()">
+                        🗑 Очистить
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="doc-preview" id="dialogue-panel" style="display:none;">
+            <div class="doc-preview-header">
+                <span>💬 Размеченный диалог</span>
+            </div>
+            <div class="doc-preview-body" id="doc-dialogue">
+                <p class="doc-empty">Появится после обработки</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="appointment-side">
+        <div class="doc-preview">
+            <div class="doc-preview-header">
+                <span>📋 SOAP</span>
+                <button class="doc-edit-btn" onclick="editDoc('soap')" title="Редактировать">✏️</button>
+            </div>
+            <div class="doc-preview-body" id="doc-soap" data-editing="false">
+                <p class="doc-empty">Появится после обработки</p>
+            </div>
+        </div>
+
+        <div class="doc-preview">
+            <div class="doc-preview-header">
+                <span>📤 Направления</span>
+                <button class="doc-edit-btn" onclick="editDoc('referrals')" title="Редактировать">✏️</button>
+            </div>
+            <div class="doc-preview-body" id="doc-referrals" data-editing="false">
+                <p class="doc-empty">Появится после обработки</p>
+            </div>
+        </div>
+
+        <div class="doc-preview">
+            <div class="doc-preview-header">
+                <span>💊 Рецепты</span>
+                <button class="doc-edit-btn" onclick="editDoc('prescriptions')" title="Редактировать">✏️</button>
+            </div>
+            <div class="doc-preview-body" id="doc-prescriptions" data-editing="false">
+                <p class="doc-empty">Появится после обработки</p>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="appointment-actions">
+    <button class="btn-action-icon btn-action-danger" onclick="deleteAppointment()" title="Удалить приём">
+        🗑 Удалить
+    </button>
+    <button class="btn-action-icon" onclick="printDocs()" title="Распечатать">
+        🖨 Печать
+    </button>
+    <button id="btn-save" class="btn-action-icon btn-action-primary" onclick="saveAppointment()" title="Сохранить приём">
+        💾 Сохранить приём
+    </button>
+</div>
+
+<div id="print-area" style="display:none;">
+    <h1 style="font-size: 20px; margin-bottom: 8px;">Приём — {{ patient.full_name }}</h1>
+    <p style="margin-bottom: 20px; color: #555;">
+        Карта № {{ patient.card or '—' }} • Возраст: {{ patient.age or '—' }} • Дата: <span id="print-date"></span>
+    </p>
+    <h2 style="font-size: 16px; margin-top: 24px;">SOAP-заключение</h2>
+    <pre id="print-soap" style="white-space: pre-wrap; font-family: inherit;"></pre>
+    <h2 style="font-size: 16px; margin-top: 24px;">Направления</h2>
+    <pre id="print-referrals" style="white-space: pre-wrap; font-family: inherit;"></pre>
+    <h2 style="font-size: 16px; margin-top: 24px;">Рецепты</h2>
+    <pre id="print-prescriptions" style="white-space: pre-wrap; font-family: inherit;"></pre>
+    <p style="margin-top: 40px;">Врач: {{ doctor_name }} _______________</p>
+    <p style="margin-top: 20px;">М.П.</p>
+</div>
+
+<script>
+const PATIENT_ID = "{{ patient.id }}";
+let documents = { dialogue: '', soap: '', referrals: '', prescriptions: '' };
+
+let streamRef = null;
+let isRecording = false;
+let accumulatedText = '';
+let recTimer = null;
+let recSeconds = 0;
+
+// Основной цикл записи: каждые N секунд — свой MediaRecorder
+const CHUNK_SECONDS = 8;
+let chunkLoopTimer = null;
+let currentRecorder = null;
+let currentChunks = [];
+let isProcessing = false;
+
+async function startRecording() {
+    if (isRecording) return;
+    try {
+        streamRef = await navigator.mediaDevices.getUserMedia({
+            audio: {
+                channelCount: 1,
+                sampleRate: 16000,
+                echoCancellation: true,
+                noiseSuppression: true,
+            }
+        });
+    } catch (err) {
+        alert('Не удалось получить доступ к микрофону: ' + err.message);
+        return;
+    }
+
+    accumulatedText = '';
+    isRecording = true;
+
+    document.getElementById('btn-rec-start').style.display = 'none';
+    document.getElementById('btn-rec-stop').style.display = 'inline-flex';
+    document.getElementById('rec-timer').style.display = 'block';
+    document.getElementById('rec-status').textContent = '🎙 Идёт запись. Текст появляется через 5-10 сек после каждой фразы...';
+    document.getElementById('status-badge').innerHTML = '<span class="status-dot recording"></span> <span id="status-text">Идёт приём</span>';
+
+    recSeconds = 0;
+    updateRecTimer();
+    recTimer = setInterval(() => { recSeconds++; updateRecTimer(); }, 1000);
+
+    // Запускаем цикл чанков
+    startNewChunk();
+
+    // Каждые CHUNK_SECONDS секунд — новый рекордер (получаем валидный webm)
+    chunkLoopTimer = setInterval(() => {
+        finishCurrentChunk();
+    }, CHUNK_SECONDS * 1000);
+}
+
+function startNewChunk() {
+    if (!isRecording) return;
+    currentChunks = [];
+    try {
+        currentRecorder = new MediaRecorder(streamRef, { mimeType: 'audio/webm;codecs=opus' });
+    } catch (e) {
+        currentRecorder = new MediaRecorder(streamRef);
+    }
+
+    currentRecorder.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) currentChunks.push(e.data);
+    };
+
+    currentRecorder.onstop = async () => {
+        if (currentChunks.length === 0) return;
+        const blob = new Blob(currentChunks, { type: 'audio/webm' });
+        sendChunkToServer(blob);
+        if (isRecording) startNewChunk();
+    };
+
+    currentRecorder.start();
+}
+
+function finishCurrentChunk() {
+    if (currentRecorder && currentRecorder.state !== 'inactive') {
+        try { currentRecorder.stop(); } catch (e) {}
+    }
+}
+
+async function sendChunkToServer(blob) {
+    isProcessing = true;
+    const formData = new FormData();
+    formData.append('audio', blob, 'chunk.webm');
+
+    try {
+        const resp = await fetch(`/patient/${PATIENT_ID}/appointment/recognize`, {
+            method: 'POST', body: formData
+        });
+        const data = await resp.json();
+        if (data.success && data.text && data.text.trim().length > 0) {
+            accumulatedText = (accumulatedText + ' ' + data.text.trim()).trim();
+            document.getElementById('transcript-input').value = accumulatedText;
+        }
+    } catch (err) {
+        // тихо игнорируем ошибку чанка
+    } finally {
+        isProcessing = false;
+    }
+}
+
+async function stopRecording() {
+    if (!isRecording) return;
+    isRecording = false;
+
+    clearInterval(recTimer);
+    clearInterval(chunkLoopTimer);
+    finishCurrentChunk();
+
+    document.getElementById('btn-rec-start').style.display = 'inline-flex';
+    document.getElementById('btn-rec-stop').style.display = 'none';
+    document.getElementById('rec-timer').style.display = 'none';
+
+    // Ждём пока последний чанк обработается
+    const waitFinal = setInterval(async () => {
+        if (!isProcessing && (!currentRecorder || currentRecorder.state === 'inactive')) {
+            clearInterval(waitFinal);
+            if (streamRef) streamRef.getTracks().forEach(t => t.stop());
+            document.getElementById('rec-status').textContent = '✅ Приём завершён. Нажмите «Обработать через ИИ».';
+            document.getElementById('status-badge').innerHTML = '<span class="status-dot"></span> <span id="status-text">Приём завершён</span>';
+        }
+    }, 500);
+}
+
+function updateRecTimer() {
+    const m = String(Math.floor(recSeconds / 60)).padStart(2, '0');
+    const s = String(recSeconds % 60).padStart(2, '0');
+    document.getElementById('rec-timer').textContent = m + ':' + s;
+}
+
+async function processTranscript() {
+    const text = document.getElementById('transcript-input').value.trim();
+    if (text.length < 20) { alert('Введите хотя бы пару предложений.'); return; }
+
+    const btn = document.getElementById('btn-process');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ ИИ обрабатывает (30-90 сек)...';
+    document.getElementById('status-badge').innerHTML = '<span class="status-dot recording"></span> <span id="status-text">ИИ обрабатывает</span>';
+    document.getElementById('rec-status').textContent = '⚡ Нейросеть анализирует диалог...';
+
+    try {
+        const response = await fetch(`/patient/${PATIENT_ID}/appointment/process`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                transcript: text,
+                existing_documents: documents.dialogue ? documents : null,
+            })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+            alert('Ошибка: ' + (data.error || 'не удалось обработать'));
+            document.getElementById('status-badge').innerHTML = '<span class="status-dot"></span> <span id="status-text">Ошибка</span>';
+            return;
+        }
+        documents.dialogue = data.dialogue;
+        documents.soap = data.soap;
+        documents.referrals = data.referrals;
+        documents.prescriptions = data.prescriptions;
+        document.getElementById('dialogue-panel').style.display = 'block';
+        renderDoc('dialogue');
+        renderDoc('soap');
+        renderDoc('referrals');
+        renderDoc('prescriptions');
+        document.getElementById('status-badge').innerHTML = '<span class="status-dot"></span> <span id="status-text">Документы готовы</span>';
+        document.getElementById('rec-status').textContent = '✅ Готово! Проверьте документы и нажмите «Сохранить приём».';
+    } catch (err) {
+        alert('Сетевая ошибка: ' + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = '⚡ Обработать через ИИ';
+    }
+}
+
+async function saveAppointment() {
+    const text = document.getElementById('transcript-input').value.trim();
+    if (!documents.soap) { alert('Сначала обработайте приём через ИИ.'); return; }
+
+    const btn = document.getElementById('btn-save');
+    btn.disabled = true;
+    btn.innerHTML = '⏳ Сохраняю...';
+
+    try {
+        const response = await fetch(`/patient/${PATIENT_ID}/appointment/save`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                transcript: text,
+                dialogue: documents.dialogue,
+                soap: documents.soap,
+                referrals: documents.referrals,
+                prescriptions: documents.prescriptions,
+            })
+        });
+        const data = await response.json();
+        if (!response.ok || data.error) {
+            alert('Ошибка: ' + (data.error || 'не удалось сохранить'));
+            btn.disabled = false;
+            btn.innerHTML = '💾 Сохранить приём';
+            return;
+        }
+        alert('Приём сохранён! ID: ' + data.appointment_id);
+        window.location.href = '/patient/' + PATIENT_ID;
+    } catch (err) {
+        alert('Сетевая ошибка: ' + err.message);
+        btn.disabled = false;
+        btn.innerHTML = '💾 Сохранить приём';
+    }
+}
+
+function renderDoc(key) {
+    const el = document.getElementById('doc-' + key);
+    const text = documents[key];
+    if (!text) { el.innerHTML = '<p class="doc-empty">Появится после обработки</p>'; return; }
+    el.innerHTML = '<pre class="doc-text">' + escapeHtml(text) + '</pre>';
+}
+
+function editDoc(key) {
+    const el = document.getElementById('doc-' + key);
+    const isEditing = el.dataset.editing === 'true';
+    if (isEditing) {
+        const textarea = el.querySelector('textarea');
+        documents[key] = textarea.value;
+        el.dataset.editing = 'false';
+        renderDoc(key);
+    } else {
+        el.dataset.editing = 'true';
+        el.innerHTML = '<textarea class="doc-textarea" id="edit-' + key + '">' +
+            escapeHtml(documents[key] || '') + '</textarea>' +
+            '<button class="btn-small" onclick="editDoc(\'' + key + '\')">✓ Сохранить</button>';
+    }
+}
+
+function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+function clearTranscript() {
+    if (confirm('Очистить текст и документы?')) {
+        document.getElementById('transcript-input').value = '';
+        accumulatedText = '';
+        documents = { dialogue: '', soap: '', referrals: '', prescriptions: '' };
+        document.getElementById('dialogue-panel').style.display = 'none';
+        renderDoc('soap'); renderDoc('referrals'); renderDoc('prescriptions');
+        document.getElementById('status-badge').innerHTML = '<span class="status-dot"></span> <span id="status-text">Готов к началу</span>';
+    }
+}
+
+function deleteAppointment() {
+    if (confirm('Удалить этот приём? Несохранённые данные будут потеряны.')) {
+        window.location.href = '/patient/' + PATIENT_ID;
+    }
+}
+
+function printDocs() {
+    document.getElementById('print-date').textContent = new Date().toLocaleDateString('ru-RU');
+    document.getElementById('print-soap').textContent = documents.soap || '(пусто)';
+    document.getElementById('print-referrals').textContent = documents.referrals || '(пусто)';
+    document.getElementById('print-prescriptions').textContent = documents.prescriptions || '(пусто)';
+    document.getElementById('print-area').style.display = 'block';
+    window.print();
+    document.getElementById('print-area').style.display = 'none';
+}
+</script>
+
+<style media="print">
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area { position: absolute; top: 0; left: 0; width: 100%; display: block !important; }
+    .sidebar, .back-link, .appointment-actions, .appointment-grid, .appointment-header { display: none !important; }
+</style>
+{% endblock %}

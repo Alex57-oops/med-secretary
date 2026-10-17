@@ -1,0 +1,121 @@
+{% extends "base.html" %}
+
+{% block title %}Регистрация — ИИ-секретарь{% endblock %}
+
+{% block content %}
+<div class="login-page">
+    <div class="login-card" style="max-width: 520px;">
+        <div class="login-logo">
+            <div class="login-logo-icon">⚕️</div>
+        </div>
+        <h1 class="login-title">Создать аккаунт</h1>
+        <p class="login-subtitle">Выберите роль и заполните данные</p>
+
+        {% if error %}
+        <div class="error-message">{{ error }}</div>
+        {% endif %}
+
+        <form method="POST" action="/register">
+
+            <div class="form-group">
+                <label class="form-label">Роль в системе</label>
+                <select name="role" id="role-select" class="form-input" onchange="toggleFields()">
+                    <option value="doctor" {% if form.role == 'doctor' %}selected{% endif %}>Врач</option>
+                    <option value="head_doctor" {% if form.role == 'head_doctor' %}selected{% endif %}>Главный врач</option>
+                    <option value="patient" {% if form.role == 'patient' %}selected{% endif %}>Пациент</option>
+                    <option value="admin" {% if form.role == 'admin' %}selected{% endif %}>Администратор</option>
+                </select>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">ФИО</label>
+                    <input type="text" name="full_name" class="form-input" placeholder="Иванов Иван Иванович" value="{{ form.full_name or '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="tel" name="phone" class="form-input" placeholder="+7 (999) 123-45-67" value="{{ form.phone or '' }}">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" name="email" class="form-input" placeholder="user@example.ru" value="{{ form.email or '' }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Пароль</label>
+                    <input type="password" name="password" class="form-input" placeholder="минимум 4 символа" required>
+                </div>
+            </div>
+
+            <!-- Поля для ВРАЧА и ГЛАВВРАЧА -->
+            <div id="doctor-fields">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Клиника</label>
+                        <input type="text" name="clinic" class="form-input" placeholder="ГКБ №1, г. Самара" value="{{ form.clinic or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Специальность</label>
+                        <input type="text" name="speciality" class="form-input" placeholder="Врач-терапевт" value="{{ form.speciality or '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Поля для ПАЦИЕНТА -->
+            <div id="patient-fields" style="display:none;">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">№ медкарты</label>
+                        <input type="text" name="card" class="form-input" placeholder="004-2026" value="{{ form.card or '' }}">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Возраст</label>
+                        <input type="number" name="age" class="form-input" placeholder="35" value="{{ form.age or '' }}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Пол</label>
+                        <select name="gender" class="form-input">
+                            <option value="М">Мужской</option>
+                            <option value="Ж">Женский</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Основной диагноз (если есть)</label>
+                        <input type="text" name="diagnosis" class="form-input" placeholder="Гипертоническая болезнь" value="{{ form.diagnosis or '' }}">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Создать аккаунт</button>
+        </form>
+
+        <p class="login-footer">
+            Уже есть аккаунт? <a href="/login" style="color: var(--accent); text-decoration: none;">Войти</a>
+        </p>
+    </div>
+</div>
+
+<script>
+function toggleFields() {
+    const role = document.getElementById('role-select').value;
+    const doctorFields = document.getElementById('doctor-fields');
+    const patientFields = document.getElementById('patient-fields');
+
+    if (role === 'patient') {
+        doctorFields.style.display = 'none';
+        patientFields.style.display = 'block';
+    } else if (role === 'admin') {
+        doctorFields.style.display = 'none';
+        patientFields.style.display = 'none';
+    } else {
+        doctorFields.style.display = 'block';
+        patientFields.style.display = 'none';
+    }
+}
+toggleFields();
+</script>
+{% endblock %}

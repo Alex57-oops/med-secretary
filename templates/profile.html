@@ -1,0 +1,94 @@
+{% extends "doctor_layout.html" %}
+
+{% block title %}Профиль — ИИ-секретарь{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Профиль</h1>
+        <p class="page-subtitle">Эти данные подставляются в документы автоматически</p>
+    </div>
+</div>
+
+{% if request.args.get('saved') %}
+<div class="success-message">✓ Изменения сохранены</div>
+{% endif %}
+
+<div class="profile-layout">
+
+    <div class="profile-card">
+        <div class="profile-avatar-big">{{ user.initials }}</div>
+        <div class="profile-name">{{ user.full_name }}</div>
+        <div class="profile-role">{{ user.speciality or 'Специальность не указана' }}</div>
+        <div class="profile-clinic">{{ user.clinic or 'Клиника не указана' }}</div>
+
+        <div class="profile-seal">
+            <div class="profile-seal-box">
+                <div class="profile-seal-text">МЕСТО<br>ПЕЧАТИ</div>
+            </div>
+            <div class="profile-signature">Подпись: ___________</div>
+        </div>
+    </div>
+
+    <div class="profile-form-card">
+        <h2 class="detail-card-title">Личные данные</h2>
+        <form method="POST" action="/profile/save">
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">ФИО</label>
+                    <input type="text" name="full_name" class="form-input" value="{{ user.full_name }}" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Специальность</label>
+                    <input type="text" name="speciality" class="form-input" value="{{ user.speciality or '' }}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Email</label>
+                    <input type="email" class="form-input" value="{{ user.email }}" disabled style="opacity:0.5;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Телефон</label>
+                    <input type="tel" name="phone" class="form-input" value="{{ user.phone or '' }}">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Клиника (полное название)</label>
+                <input type="text" name="clinic" class="form-input" value="{{ user.clinic or '' }}">
+            </div>
+
+            {% if user.role == 'patient' %}
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">№ медкарты</label>
+                    <input type="text" name="card" class="form-input" value="{{ user.card or '' }}">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Возраст</label>
+                    <input type="number" name="age" class="form-input" value="{{ user.age or '' }}">
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label class="form-label">Пол</label>
+                    <select name="gender" class="form-input">
+                        <option value="М" {% if user.gender == 'М' %}selected{% endif %}>Мужской</option>
+                        <option value="Ж" {% if user.gender == 'Ж' %}selected{% endif %}>Женский</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Диагноз</label>
+                    <input type="text" name="diagnosis" class="form-input" value="{{ user.diagnosis or '' }}">
+                </div>
+            </div>
+            {% endif %}
+
+            <button type="submit" class="btn btn-primary" style="width: auto; padding: 14px 36px;">
+                💾 Сохранить изменения
+            </button>
+        </form>
+    </div>
+
+</div>
+{% endblock %}

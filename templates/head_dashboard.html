@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Кабинет главврача</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="topbar-brand-icon">⚕️</div>
+        <span>Кабинет главного врача</span>
+    </div>
+    <div class="topbar-user">
+        <span class="topbar-user-name">{{ user.full_name }}</span>
+        <a href="/logout" class="btn-logout">Выйти</a>
+    </div>
+</div>
+
+<div class="container">
+    <h1 class="page-title">Здравствуйте, {{ user.full_name.split(' ')[1] }}!</h1>
+    <p class="page-subtitle">Обзор работы клиники</p>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📋</div>
+            <div class="stat-value">{{ stats.total_appointments }}</div>
+            <div class="stat-label">Всего приёмов</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👨‍⚕️</div>
+            <div class="stat-value">{{ stats.total_doctors }}</div>
+            <div class="stat-label">Врачей в клинике</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">👥</div>
+            <div class="stat-value">{{ stats.total_patients }}</div>
+            <div class="stat-label">Пациентов</div>
+        </div>
+        <div class="stat-card stat-card-accent">
+            <div class="stat-icon">⚡</div>
+            <div class="stat-value">{{ stats.time_saved_total }}</div>
+            <div class="stat-label">Сэкономлено времени</div>
+        </div>
+    </div>
+
+    <!-- График по дням -->
+    <div class="detail-card" style="margin-bottom: 24px;">
+        <h2 class="detail-card-title">📊 Приёмы за последние 14 дней</h2>
+        <div class="chart-container">
+            <div class="chart-bars">
+                {% for d in daily_stats %}
+                <div class="chart-bar-wrapper">
+                    <div class="chart-bar-value">{{ d.count }}</div>
+                    <div class="chart-bar" style="height: {{ d.height }}%;" title="{{ d.date }} — {{ d.count }} приёмов"></div>
+                    <div class="chart-bar-label">{{ d.date }}</div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+
+    <div class="dashboard-grid">
+        <div class="detail-card">
+            <h2 class="detail-card-title">🏆 Топ врачей по приёмам</h2>
+            {% if top_doctors %}
+            <table class="data-table">
+                <thead>
+                    <tr><th>Врач</th><th>Приёмов</th></tr>
+                </thead>
+                <tbody>
+                    {% for d in top_doctors %}
+                    <tr>
+                        <td>{{ d.full_name }}</td>
+                        <td><strong style="color: var(--accent);">{{ d.appointments }}</strong></td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% else %}
+            <div class="empty-state"><p>Нет данных</p></div>
+            {% endif %}
+        </div>
+
+        <div class="detail-card">
+            <h2 class="detail-card-title">👨‍⚕️ Все врачи</h2>
+            <table class="data-table">
+                <thead>
+                    <tr><th>ФИО</th><th>Специальность</th><th>Приёмов</th></tr>
+                </thead>
+                <tbody>
+                    {% for d in doctor_stats %}
+                    <tr>
+                        <td>{{ d.full_name }}</td>
+                        <td>{{ d.speciality or '—' }}</td>
+                        <td>{{ d.appointments }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="detail-card" style="margin-top: 24px;">
+        <h2 class="detail-card-title">📋 Последние приёмы</h2>
+        {% if recent_appointments %}
+        <div class="appointments-list">
+            {% for a in recent_appointments %}
+            <div class="appointment-item">
+                <div class="appointment-item-header">
+                    <div class="appointment-item-date">{{ a.date_display }}</div>
+                    <div class="appointment-item-id">{{ a.clinic or 'без клиники' }}</div>
+                </div>
+                <div class="appointment-item-preview">
+                    {{ a.soap[:150] }}{% if a.soap|length > 150 %}...{% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state"><p>Приёмов ещё не было.</p></div>
+        {% endif %}
+    </div>
+
+    <p class="security-note">
+        🔒 Все данные обрабатываются локально на сервере клиники. Соответствие 152-ФЗ.
+    </p>
+</div>
+
+</body>
+</html>

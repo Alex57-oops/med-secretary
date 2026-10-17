@@ -1,0 +1,110 @@
+{% extends "doctor_layout.html" %}
+
+{% block title %}{{ patient.full_name }} — ИИ-секретарь{% endblock %}
+
+{% block content %}
+<a href="/patients" class="back-link">← К списку пациентов</a>
+
+<div class="patient-header-card">
+    <div class="patient-header-info">
+        <div class="patient-avatar-lg">{{ patient.initials }}</div>
+        <div>
+            <h1 class="page-title">{{ patient.full_name }}</h1>
+            <p class="page-subtitle">
+                {{ patient.age or '—' }} лет • {{ patient.gender or '—' }} • Карта № {{ patient.card or '—' }}
+            </p>
+            <div class="patient-tags">
+                <span class="tag">Приёмов: {{ appointments|length }}</span>
+                <span class="tag">Анализов: {{ analyses|length }}</span>
+                <button class="tag tag-accent" onclick="toggleDiagnoses()" style="cursor:pointer; border:none; font-family:inherit;">🩺 Действующие диагнозы</button>
+            </div>
+            <div id="diagnoses-block" style="display:none; margin-top:12px;">
+                <div class="diagnoses-list">
+                    {% if patient.diagnosis %}
+                    <div class="diagnosis-item">• {{ patient.diagnosis }}</div>
+                    {% else %}
+                    <div class="diagnosis-item" style="color:var(--text-dim);">Диагнозы не указаны</div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    <a href="/patient/{{ patient.id }}/appointment" class="btn-start-appointment">
+        <span class="btn-start-icon">🎙</span>
+        <span>
+            <span class="btn-start-title">Начать приём</span>
+            <span class="btn-start-sub">Аудио-запись с ИИ-секретарём</span>
+        </span>
+    </a>
+</div>
+
+<div class="patient-detail-grid">
+
+    <div class="detail-card" style="grid-column: 1 / -1;">
+        <h2 class="detail-card-title">📋 История приёмов</h2>
+        {% if appointments %}
+        <div class="appointments-list">
+            {% for a in appointments %}
+            <div class="appointment-item">
+                <div class="appointment-item-header">
+                    <div class="appointment-item-date">{{ a.date_display }}</div>
+                    <div class="appointment-item-id">Приём {{ a.id }}</div>
+                </div>
+                <div class="appointment-item-preview">
+                    {{ a.soap[:180] }}{% if a.soap|length > 180 %}...{% endif %}
+                </div>
+                <div class="appointment-item-actions">
+                    <a href="/appointment/{{ a.id }}" class="btn-small">Показать полностью</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>Приёмов пока нет.</p>
+            <p class="empty-state-hint">Нажмите «Начать приём», чтобы создать первый.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="detail-card" style="grid-column: 1 / -1;">
+        <h2 class="detail-card-title">🧪 Анализы и исследования пациента</h2>
+        {% if analyses %}
+        <div class="analyses-list">
+            {% for an in analyses %}
+            <div class="analysis-item">
+                <div class="analysis-icon">
+                    {% if an.file_type == 'pdf' %}📄{% elif an.file_type == 'image' %}🖼{% else %}📎{% endif %}
+                </div>
+                <div class="analysis-info">
+                    <div class="analysis-title">{{ an.title }}</div>
+                    <div class="analysis-meta">
+                        {{ an.original_name }} • {{ an.uploaded_at[:16].replace('T', ' ') }}
+                    </div>
+                    {% if an.notes %}
+                    <div class="analysis-notes">{{ an.notes }}</div>
+                    {% endif %}
+                </div>
+                <div class="analysis-actions">
+                    <a href="/my/analysis/{{ an.id }}/view" target="_blank" class="btn-small">Открыть</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <p>Анализов пока нет.</p>
+            <p class="empty-state-hint">Пациент может загрузить их в своём кабинете.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<script>
+function toggleDiagnoses() {
+    const block = document.getElementById('diagnoses-block');
+    block.style.display = block.style.display === 'none' ? 'block' : 'none';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends "doctor_layout.html" %}
+
+{% block title %}Пациенты — ИИ-секретарь{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Мои пациенты</h1>
+        <p class="page-subtitle">Выберите пациента, чтобы начать приём</p>
+    </div>
+</div>
+
+<div class="toolbar">
+    <input type="text" class="search-input" id="patient-search" placeholder="Поиск по ФИО или номеру карты..." oninput="filterPatients()">
+    <a href="/register" class="btn btn-secondary">+ Новый пациент</a>
+</div>
+
+<div class="patients-grid" id="patients-grid">
+    {% for p in patients %}
+    <a href="/patient/{{ p.id }}" class="patient-card" data-search="{{ p.full_name|lower }} {{ p.card|lower }}">
+        <div class="patient-avatar">{{ p.initials }}</div>
+        <div class="patient-name">{{ p.full_name }}</div>
+        <div class="patient-info">{{ p.age or '—' }} лет • {{ p.gender or '—' }}</div>
+        <div class="patient-info">{{ p.diagnosis or 'Диагноз не указан' }}</div>
+        <div class="patient-meta">
+            <span>Карта № {{ p.card or '—' }}</span>
+            <span class="badge">Пациент</span>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<script>
+function filterPatients() {
+    const q = document.getElementById('patient-search').value.toLowerCase().trim();
+    document.querySelectorAll('#patients-grid .patient-card').forEach(card => {
+        const text = card.getAttribute('data-search');
+        card.style.display = text.includes(q) ? '' : 'none';
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends "doctor_layout.html" %}
+
+{% block title %}Главная — ИИ-секретарь{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Здравствуйте, {{ doctor_name.split(' ')[1] }}!</h1>
+        <p class="page-subtitle">Обзор на сегодня, {{ today }}</p>
+    </div>
+</div>
+
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="stat-icon">🩺</div>
+        <div class="stat-value">{{ stats.appointments_today }}</div>
+        <div class="stat-label">Приёмов сегодня</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">👥</div>
+        <div class="stat-value">{{ stats.total_patients }}</div>
+        <div class="stat-label">Всего пациентов</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon">📄</div>
+        <div class="stat-value">{{ stats.documents_generated }}</div>
+        <div class="stat-label">Документов создано</div>
+    </div>
+    <div class="stat-card stat-card-accent">
+        <div class="stat-icon">⚡</div>
+        <div class="stat-value">{{ stats.time_saved }}</div>
+        <div class="stat-label">Сэкономлено времени</div>
+    </div>
+</div>
+
+<p class="security-note">
+    🔒 Все данные обрабатываются локально на сервере клиники. Соответствие 152-ФЗ.
+</p>
+{% endblock %}

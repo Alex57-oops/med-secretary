@@ -1,0 +1,221 @@
+{% extends "doctor_layout.html" %}
+
+{% block title %}Приём {{ appointment.id }} — {{ patient.full_name }}{% endblock %}
+
+{% block content %}
+<a href="/patient/{{ patient.id }}" class="back-link">← Назад в карточку пациента</a>
+
+<div class="appointment-header">
+    <div>
+        <h1 class="page-title">Приём от {{ appointment.date_display }}</h1>
+        <p class="page-subtitle">
+            {{ patient.full_name }} • Карта № {{ patient.card or '—' }} • ID: {{ appointment.id }}
+        </p>
+    </div>
+    <button class="btn-record-start" onclick="printAppointment()">
+        🖨 Распечатать
+    </button>
+</div>
+
+<div class="quick-toggles">
+    <button class="toggle-btn" onclick="toggleSection('dialogue-section')">
+        💬 Показать размеченный диалог
+    </button>
+    <button class="toggle-btn" onclick="toggleSection('transcript-section')">
+        🎙 Показать исходную стенограмму
+    </button>
+</div>
+
+<div id="dialogue-section" class="hidden-section">
+    <div class="detail-card">
+        <h2 class="detail-card-title">💬 Размеченный диалог</h2>
+        {% if appointment.dialogue %}
+        <pre class="doc-text" style="font-size: 13.5px; line-height: 1.8;">{{ appointment.dialogue }}</pre>
+        {% else %}
+        <p class="doc-empty">Диалог не сохранён.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div id="transcript-section" class="hidden-section">
+    <div class="detail-card">
+        <h2 class="detail-card-title">🎙 Исходная стенограмма</h2>
+        {% if appointment.transcript %}
+        <pre class="doc-text" style="font-size: 12px; color: #8b94a7;">{{ appointment.transcript }}</pre>
+        {% else %}
+        <p class="doc-empty">Стенограмма не сохранена.</p>
+        {% endif %}
+    </div>
+</div>
+
+<div class="documents-view">
+
+    <div class="medical-form">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-clinic-sub">г. Самара • Лицензия ЛО-63-01-000000 от 01.01.2020</div>
+            <div class="form-title">ЗАКЛЮЧЕНИЕ ВРАЧА (SOAP)</div>
+        </div>
+
+        <div class="form-patient-row">
+            <div><span class="form-label-inline">ФИО пациента:</span> {{ patient.full_name }}</div>
+            <div><span class="form-label-inline">Возраст:</span> {{ patient.age or '—' }} лет</div>
+        </div>
+        <div class="form-patient-row">
+            <div><span class="form-label-inline">№ медкарты:</span> {{ patient.card or '—' }}</div>
+            <div><span class="form-label-inline">Дата приёма:</span> {{ appointment.date_display }}</div>
+        </div>
+
+        <div class="form-body">
+            <pre class="form-content">{{ appointment.soap }}</pre>
+        </div>
+
+        <div class="form-footer">
+            <div class="form-signature">
+                <div>Врач: {{ doctor_name }}</div>
+                <div class="form-signature-line">подпись _______________</div>
+            </div>
+            <div class="form-qr-block">
+                <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR" class="form-qr-img">
+                <div class="form-qr-caption">Отсканируйте<br>для доступа<br>к документу</div>
+            </div>
+            <div class="form-stamp">
+                <div class="form-stamp-circle">М.П.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="medical-form">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-title">НАПРАВЛЕНИЯ НА ОБСЛЕДОВАНИЕ</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>ФИО пациента:</strong> {{ patient.full_name }}</div>
+            <div><strong>№ медкарты:</strong> {{ patient.card or '—' }}</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>Возраст:</strong> {{ patient.age or '—' }} лет</div>
+            <div><strong>Дата:</strong> {{ appointment.date_display }}</div>
+        </div>
+        <div class="form-body">
+            <pre class="form-content">{{ appointment.referrals }}</pre>
+        </div>
+        <div class="form-footer">
+            <div class="form-signature">
+                <div>Врач: {{ doctor_name }}</div>
+                <div class="form-signature-line">подпись _______________</div>
+            </div>
+            <div class="form-stamp">
+                <div class="form-stamp-circle">М.П.</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="medical-form">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-title">РЕЦЕПТУРНЫЙ БЛАНК</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>ФИО пациента:</strong> {{ patient.full_name }}</div>
+            <div><strong>№ медкарты:</strong> {{ patient.card or '—' }}</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>Возраст:</strong> {{ patient.age or '—' }} лет</div>
+            <div><strong>Дата:</strong> {{ appointment.date_display }}</div>
+        </div>
+        <div class="form-body">
+            <pre class="form-content">{{ appointment.prescriptions }}</pre>
+        </div>
+        <div class="form-footer">
+            <div class="form-signature">
+                <div>Врач: {{ doctor_name }}</div>
+                <div class="form-signature-line">подпись _______________</div>
+            </div>
+            <div class="form-stamp">
+                <div class="form-stamp-circle">М.П.</div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div id="print-area" style="display:none;">
+    <div class="print-form">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-clinic-sub">г. Самара • Лицензия ЛО-63-01-000000 от 01.01.2020</div>
+            <div class="form-title">ЗАКЛЮЧЕНИЕ ВРАЧА (SOAP)</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>ФИО пациента:</strong> {{ patient.full_name }}</div>
+            <div><strong>Возраст:</strong> {{ patient.age or '—' }} лет</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>№ медкарты:</strong> {{ patient.card or '—' }}</div>
+            <div><strong>Дата приёма:</strong> {{ appointment.date_display }}</div>
+        </div>
+        <div class="form-body"><pre class="form-content">{{ appointment.soap }}</pre></div>
+        <div class="form-footer">
+            <div class="form-signature"><div>Врач: {{ doctor_name }}</div><div class="form-signature-line">подпись _______________</div></div>
+            <div class="form-qr-block">
+                <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR" style="width: 90px; height: 90px;">
+            </div>
+            <div class="form-stamp"><div class="form-stamp-circle">М.П.</div></div>
+        </div>
+    </div>
+
+    <div class="print-form" style="page-break-before: always;">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-title">НАПРАВЛЕНИЯ НА ОБСЛЕДОВАНИЕ</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>ФИО пациента:</strong> {{ patient.full_name }}</div>
+            <div><strong>№ медкарты:</strong> {{ patient.card or '—' }}</div>
+        </div>
+        <div class="form-body"><pre class="form-content">{{ appointment.referrals }}</pre></div>
+        <div class="form-footer">
+            <div class="form-signature"><div>Врач: {{ doctor_name }}</div><div class="form-signature-line">подпись _______________</div></div>
+            <div class="form-stamp"><div class="form-stamp-circle">М.П.</div></div>
+        </div>
+    </div>
+
+    <div class="print-form" style="page-break-before: always;">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-title">РЕЦЕПТУРНЫЙ БЛАНК</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>ФИО пациента:</strong> {{ patient.full_name }}</div>
+            <div><strong>№ медкарты:</strong> {{ patient.card or '—' }}</div>
+        </div>
+        <div class="form-body"><pre class="form-content">{{ appointment.prescriptions }}</pre></div>
+        <div class="form-footer">
+            <div class="form-signature"><div>Врач: {{ doctor_name }}</div><div class="form-signature-line">подпись _______________</div></div>
+            <div class="form-stamp"><div class="form-stamp-circle">М.П.</div></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function toggleSection(id) {
+    const el = document.getElementById(id);
+    el.style.display = el.style.display === 'block' ? 'none' : 'block';
+}
+function printAppointment() {
+    document.getElementById('print-area').style.display = 'block';
+    window.print();
+    document.getElementById('print-area').style.display = 'none';
+}
+</script>
+
+<style media="print">
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area { position: absolute; top: 0; left: 0; width: 100%; display: block !important; }
+    .sidebar, .burger-btn, .back-link, .appointment-header, .quick-toggles, .documents-view,
+    .hidden-section { display: none !important; }
+</style>
+{% endblock %}

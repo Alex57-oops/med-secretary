@@ -1,0 +1,56 @@
+{% extends "doctor_layout.html" %}
+
+{% block title %}Документы — ИИ-секретарь{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <h1 class="page-title">Мои документы</h1>
+        <p class="page-subtitle">Все приёмы, оформленные с помощью ИИ-секретаря</p>
+    </div>
+</div>
+
+{% if appointments %}
+<div class="toolbar">
+    <input type="text" class="search-input" id="doc-search" placeholder="Поиск по пациенту или тексту..." oninput="filterDocs()">
+</div>
+
+<div class="documents-list" id="documents-list">
+    {% for a in appointments %}
+    <a href="/appointment/{{ a.id }}" class="document-row" data-search="{{ a.patient_name|lower }} {{ a.soap[:200]|lower }}">
+        <div class="document-row-left">
+            <div class="document-row-date">{{ a.date_display }}</div>
+            <div class="document-row-patient">{{ a.patient_name }}</div>
+            <div class="document-row-preview">
+                {{ a.soap[:200] }}{% if a.soap|length > 200 %}...{% endif %}
+            </div>
+        </div>
+        <div class="document-row-right">
+            <div class="document-row-id">{{ a.id }}</div>
+            <div class="badge">Карта № {{ a.patient_card }}</div>
+        </div>
+    </a>
+    {% endfor %}
+</div>
+
+<script>
+function filterDocs() {
+    const q = document.getElementById('doc-search').value.toLowerCase().trim();
+    document.querySelectorAll('#documents-list .document-row').forEach(row => {
+        const text = row.getAttribute('data-search');
+        row.style.display = text.includes(q) ? '' : 'none';
+    });
+}
+</script>
+
+{% else %}
+<div class="detail-card">
+    <div class="empty-state">
+        <div class="empty-state-icon">📄</div>
+        <p>Документов пока нет.</p>
+        <p class="empty-state-hint">Проведите первый приём — документы появятся здесь автоматически.</p>
+        <a href="/patients" class="btn-small" style="margin-top: 16px; display: inline-block;">К списку пациентов</a>
+    </div>
+</div>
+{% endif %}
+{% endblock %}

@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}ИИ-секретарь{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body class="app-body">
+
+    <button class="burger-btn" onclick="toggleSidebar()" aria-label="Меню">☰</button>
+
+    <div class="sidebar-overlay" id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-brand">
+            <div class="sidebar-brand-icon">⚕️</div>
+            <span>ИИ-секретарь</span>
+        </div>
+
+        <nav class="sidebar-nav">
+            <a href="/dashboard" class="nav-item {% if active == 'dashboard' %}active{% endif %}">
+                <span class="nav-icon">🏠</span>
+                <span>Главная</span>
+            </a>
+            <a href="/patients" class="nav-item {% if active == 'patients' %}active{% endif %}">
+                <span class="nav-icon">👥</span>
+                <span>Пациенты</span>
+            </a>
+            <a href="/documents" class="nav-item {% if active == 'documents' %}active{% endif %}">
+                <span class="nav-icon">📄</span>
+                <span>Документы</span>
+            </a>
+            <a href="/profile" class="nav-item {% if active == 'profile' %}active{% endif %}">
+                <span class="nav-icon">👤</span>
+                <span>Профиль</span>
+            </a>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div class="sidebar-user">
+                <div class="sidebar-user-avatar">{{ doctor_initials }}</div>
+                <div class="sidebar-user-info">
+                    <div class="sidebar-user-name">{{ doctor_name }}</div>
+                    <div class="sidebar-user-role">{{ user.speciality or 'Врач' }}</div>
+                </div>
+            </div>
+            <a href="/logout" class="sidebar-logout">Выйти</a>
+        </div>
+    </aside>
+
+    <main class="main-content">
+        {% block content %}{% endblock %}
+    </main>
+
+<script>
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebar-overlay').classList.toggle('visible');
+}
+</script>
+</body>
+</html>

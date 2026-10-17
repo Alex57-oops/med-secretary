@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Приём {{ appointment.id }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="topbar-brand-icon">⚕️</div>
+        <span>Мой кабинет</span>
+    </div>
+    <div class="topbar-user">
+        <span class="topbar-user-name">{{ user.full_name }}</span>
+        <a href="/logout" class="btn-logout">Выйти</a>
+    </div>
+</div>
+
+<div class="container">
+    <a href="/my" class="back-link">← К списку приёмов</a>
+    <div class="appointment-header">
+        <div>
+            <h1 class="page-title">Приём от {{ appointment.date_display }}</h1>
+            <p class="page-subtitle">ID: {{ appointment.id }}</p>
+        </div>
+        <button class="btn-record-start" onclick="printDocs()">
+            🖨 Скачать PDF / Распечатать
+        </button>
+    </div>
+
+    <div class="documents-view">
+        <div class="medical-form">
+            <div class="form-header">
+                <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+                <div class="form-clinic-sub">г. Самара</div>
+                <div class="form-title">ЗАКЛЮЧЕНИЕ ВРАЧА (SOAP)</div>
+            </div>
+            <div class="form-patient-row">
+                <div><strong>ФИО пациента:</strong> {{ user.full_name }}</div>
+                <div><strong>Возраст:</strong> {{ user.age or '—' }} лет</div>
+            </div>
+            <div class="form-patient-row">
+                <div><strong>№ медкарты:</strong> {{ user.card or '—' }}</div>
+                <div><strong>Дата приёма:</strong> {{ appointment.date_display }}</div>
+            </div>
+            <div class="form-body"><pre class="form-content">{{ appointment.soap }}</pre></div>
+        </div>
+
+        <div class="medical-form">
+            <div class="form-header">
+                <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+                <div class="form-title">НАПРАВЛЕНИЯ</div>
+            </div>
+            <div class="form-body"><pre class="form-content">{{ appointment.referrals }}</pre></div>
+        </div>
+
+        <div class="medical-form">
+            <div class="form-header">
+                <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+                <div class="form-title">РЕЦЕПТУРНЫЙ БЛАНК</div>
+            </div>
+            <div class="form-body"><pre class="form-content">{{ appointment.prescriptions }}</pre></div>
+        </div>
+    </div>
+</div>
+
+<div id="print-area" style="display:none;">
+    <div class="print-form">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-clinic-sub">г. Самара</div>
+            <div class="form-title">ЗАКЛЮЧЕНИЕ ВРАЧА (SOAP)</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>ФИО пациента:</strong> {{ user.full_name }}</div>
+            <div><strong>Возраст:</strong> {{ user.age or '—' }} лет</div>
+        </div>
+        <div class="form-patient-row">
+            <div><strong>№ медкарты:</strong> {{ user.card or '—' }}</div>
+            <div><strong>Дата:</strong> {{ appointment.date_display }}</div>
+        </div>
+        <div class="form-body"><pre class="form-content">{{ appointment.soap }}</pre></div>
+    </div>
+
+    <div class="print-form" style="page-break-before: always;">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-title">НАПРАВЛЕНИЯ</div>
+        </div>
+        <div class="form-body"><pre class="form-content">{{ appointment.referrals }}</pre></div>
+    </div>
+
+    <div class="print-form" style="page-break-before: always;">
+        <div class="form-header">
+            <div class="form-clinic">ГБУЗ «Городская клиническая больница №1»</div>
+            <div class="form-title">РЕЦЕПТУРНЫЙ БЛАНК</div>
+        </div>
+        <div class="form-body"><pre class="form-content">{{ appointment.prescriptions }}</pre></div>
+    </div>
+</div>
+
+<script>
+function printDocs() {
+    document.getElementById('print-area').style.display = 'block';
+    window.print();
+    document.getElementById('print-area').style.display = 'none';
+}
+</script>
+
+<style media="print">
+    body * { visibility: hidden; }
+    #print-area, #print-area * { visibility: visible; }
+    #print-area { position: absolute; top: 0; left: 0; width: 100%; display: block !important; }
+    .topbar, .back-link, .appointment-header, .documents-view { display: none !important; }
+</style>
+
+</body>
+</html>

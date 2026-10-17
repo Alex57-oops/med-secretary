@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Тест микрофона</title>
+    <style>
+        body { font-family: sans-serif; padding: 40px; background: #111; color: #eee; }
+        button { padding: 16px 32px; font-size: 16px; margin-right: 10px; cursor: pointer; border-radius: 10px; border: none; }
+        #start { background: #00d9a3; color: #051512; font-weight: bold; }
+        #stop { background: #ef4444; color: white; font-weight: bold; }
+        #out { margin-top: 20px; padding: 20px; background: #1a1f2e; border-radius: 12px; min-height: 200px; white-space: pre-wrap; font-size: 15px; line-height: 1.7; }
+        #status { margin-top: 10px; font-size: 14px; color: #888; }
+    </style>
+</head>
+<body>
+    <h1>Тест распознавания речи</h1>
+    <p>Нажми «Начать», скажи что-нибудь в микрофон. Текст должен появиться ниже.</p>
+
+    <button id="start" onclick="start()">🎙 Начать</button>
+    <button id="stop" onclick="stop()">⏹ Стоп</button>
+
+    <div id="status">Статус: ожидание</div>
+    <div id="out"></div>
+
+    <script>
+        let recognition = null;
+        let finalText = '';
+
+        function start() {
+            const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+            if (!SR) {
+                alert('Ваш браузер не поддерживает распознавание речи. Используйте Chrome, Edge или Яндекс.Браузер.');
+                return;
+            }
+
+            recognition = new SR();
+            recognition.lang = 'ru-RU';
+            recognition.continuous = true;
+            recognition.interimResults = true;
+
+            recognition.onstart = () => {
+                document.getElementById('status').textContent = 'Статус: слушаю...';
+            };
+
+            recognition.onresult = (event) => {
+                let interim = '';
+                for (let i = event.resultIndex; i < event.results.length; i++) {
+                    const t = event.results[i][0].transcript;
+                    if (event.results[i].isFinal) {
+                        finalText += t + ' ';
+                    } else {
+                        interim += t;
+                    }
+                }
+                document.getElementById('out').textContent = finalText + interim;
+            };
+
+            recognition.onerror = (e) => {
+                document.getElementById('status').textContent = 'Ошибка: ' + e.error;
+            };
+
+            recognition.onend = () => {
+                document.getElementById('status').textContent = 'Статус: остановлено';
+            };
+
+            recognition.start();
+        }
+
+        function stop() {
+            if (recognition) recognition.stop();
+        }
+    </script>
+</body>
+</html>

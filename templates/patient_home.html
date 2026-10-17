@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Мой кабинет — {{ user.full_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="topbar-brand-icon">⚕️</div>
+        <span>Мой кабинет</span>
+    </div>
+    <div class="topbar-user">
+        <a href="/my/notifications" class="notif-bell" title="Уведомления">
+            🔔
+            {% if notifications %}
+            <span class="notif-badge">{{ notifications|length }}</span>
+            {% endif %}
+        </a>
+        <span class="topbar-user-name">{{ user.full_name }}</span>
+        <a href="/logout" class="btn-logout">Выйти</a>
+    </div>
+</div>
+
+<div class="container">
+    <h1 class="page-title">Здравствуйте, {{ user.full_name.split(' ')[1] }}!</h1>
+    <p class="page-subtitle">Здесь хранятся все ваши медицинские документы и анализы</p>
+
+    {% if notifications %}
+    <div class="notifications-inline">
+        <div class="notifications-inline-header">
+            <span>🔔 Новые уведомления ({{ notifications|length }})</span>
+            <a href="/my/notifications/read-all" class="btn-small">Прочитать все</a>
+        </div>
+        {% for n in notifications %}
+        <a href="/my/notifications/read/{{ n.id }}?next={{ n.link }}" class="notification-inline-item">
+            <div class="notification-inline-icon">📄</div>
+            <div class="notification-inline-content">
+                <div class="notification-inline-title">{{ n.title }}</div>
+                <div class="notification-inline-message">{{ n.message }}</div>
+            </div>
+            <div class="notification-inline-arrow">→</div>
+        </a>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">📅</div>
+            <div class="stat-value">{{ appointments|length }}</div>
+            <div class="stat-label">Приёмов всего</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🧪</div>
+            <div class="stat-value">{{ analyses|length }}</div>
+            <div class="stat-label">Анализов загружено</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">💊</div>
+            <div class="stat-value">{{ user.card or '—' }}</div>
+            <div class="stat-label">№ медкарты</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">🩺</div>
+            <div class="stat-value">{{ user.diagnosis or '—' }}</div>
+            <div class="stat-label">Диагноз</div>
+        </div>
+    </div>
+
+    <div class="detail-card" style="margin-bottom: 24px;">
+        <h2 class="detail-card-title">📋 Мои приёмы</h2>
+        {% if appointments %}
+        <div class="appointments-list">
+            {% for a in appointments %}
+            <div class="appointment-item">
+                <div class="appointment-item-header">
+                    <div class="appointment-item-date">{{ a.date_display }}</div>
+                    <div class="appointment-item-id">{{ a.id }}</div>
+                </div>
+                <div class="appointment-item-preview">
+                    {{ a.soap[:180] }}{% if a.soap|length > 180 %}...{% endif %}
+                </div>
+                <div class="appointment-item-actions">
+                    <a href="/my/appointment/{{ a.id }}" class="btn-small">Открыть документы</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-state-icon">📄</div>
+            <p>Приёмов пока нет.</p>
+            <p class="empty-state-hint">После первого приёма документы появятся здесь.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <div class="detail-card">
+        <h2 class="detail-card-title">🧪 Мои анализы и исследования</h2>
+
+        <form method="POST" action="/my/upload-analysis" enctype="multipart/form-data" class="upload-form">
+            <div class="upload-row">
+                <div class="form-group">
+                    <label class="form-label">Название</label>
+                    <input type="text" name="title" class="form-input" placeholder="Общий анализ крови, ЭКГ..." required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Файл (PDF или изображение)</label>
+                    <input type="file" name="file" class="form-input" accept=".pdf,.png,.jpg,.jpeg,.gif,.webp" required>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Заметка (необязательно)</label>
+                <input type="text" name="notes" class="form-input" placeholder="Например: результаты от 12.10, сдавал в Инвитро">
+            </div>
+            <button type="submit" class="btn btn-primary" style="width: auto; padding: 12px 28px;">
+                📤 Загрузить анализ
+            </button>
+        </form>
+
+        {% if analyses %}
+        <div class="analyses-list" style="margin-top: 24px;">
+            {% for an in analyses %}
+            <div class="analysis-item">
+                <div class="analysis-icon">
+                    {% if an.file_type == 'pdf' %}📄{% elif an.file_type == 'image' %}🖼{% else %}📎{% endif %}
+                </div>
+                <div class="analysis-info">
+                    <div class="analysis-title">{{ an.title }}</div>
+                    <div class="analysis-meta">
+                        {{ an.original_name }} • {{ an.uploaded_at[:16].replace('T', ' ') }}
+                    </div>
+                    {% if an.notes %}
+                    <div class="analysis-notes">{{ an.notes }}</div>
+                    {% endif %}
+                </div>
+                <div class="analysis-actions">
+                    <a href="/my/analysis/{{ an.id }}/view" target="_blank" class="btn-small">Открыть</a>
+                    <form method="POST" action="/my/analysis/{{ an.id }}/delete" style="display:inline;" onsubmit="return confirm('Удалить анализ?');">
+                        <button type="submit" class="btn-small btn-small-danger">Удалить</button>
+                    </form>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+</body>
+</html>

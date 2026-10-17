@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Уведомления — {{ user.full_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="topbar-brand-icon">⚕️</div>
+        <span>Уведомления</span>
+    </div>
+    <div class="topbar-user">
+        <span class="topbar-user-name">{{ user.full_name }}</span>
+        <a href="/logout" class="btn-logout">Выйти</a>
+    </div>
+</div>
+
+<div class="container">
+    <a href="/my" class="back-link">← В мой кабинет</a>
+    <div class="page-header">
+        <div>
+            <h1 class="page-title">Уведомления</h1>
+            <p class="page-subtitle">Все события вашего кабинета</p>
+        </div>
+        {% if notifications %}
+        <a href="/my/notifications/read-all" class="btn btn-secondary">Отметить все прочитанными</a>
+        {% endif %}
+    </div>
+
+    {% if notifications %}
+    <div class="notifications-list">
+        {% for n in notifications %}
+        <a href="/my/notifications/read/{{ n.id }}?next={{ n.link or '/my' }}" class="notification-card {% if not n.is_read %}unread{% endif %}">
+            <div class="notification-card-icon">
+                {% if n.type == 'new_appointment' %}📄{% else %}🔔{% endif %}
+            </div>
+            <div class="notification-card-body">
+                <div class="notification-card-title">{{ n.title }}</div>
+                <div class="notification-card-message">{{ n.message }}</div>
+                <div class="notification-card-date">{{ n.created_at[:16].replace('T', ' ') }}</div>
+            </div>
+            {% if not n.is_read %}
+            <div class="notification-dot"></div>
+            {% endif %}
+        </a>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="detail-card">
+        <div class="empty-state">
+            <div class="empty-state-icon">🔔</div>
+            <p>Уведомлений пока нет.</p>
+            <p class="empty-state-hint">Здесь появятся сообщения о новых документах и назначениях.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+</body>
+</html>

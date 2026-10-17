@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>Админ-панель</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<div class="topbar">
+    <div class="topbar-brand">
+        <div class="topbar-brand-icon">⚕️</div>
+        <span>Админ-панель</span>
+    </div>
+    <div class="topbar-user">
+        <span class="topbar-user-name">{{ user.full_name }}</span>
+        <a href="/logout" class="btn-logout">Выйти</a>
+    </div>
+</div>
+
+<div class="container">
+    <h1 class="page-title">Все пользователи системы</h1>
+    <p class="page-subtitle">Управление пользователями</p>
+
+    <div class="detail-card">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th><th>ФИО</th><th>Email</th><th>Роль</th><th>Клиника</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.id }}</td>
+                    <td>{{ u.full_name }}</td>
+                    <td>{{ u.email }}</td>
+                    <td><span class="badge">{{ u.role }}</span></td>
+                    <td>{{ u.clinic or '—' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+</body>
+</html>
